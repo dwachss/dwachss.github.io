@@ -1,0 +1,531 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Understanding jQuery UI Widgets</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/themes/smoothness/jquery-ui.css" />
+    <link rel="stylesheet" href="stylesheets/prism-dw.css" />
+	<!--This loads jQuery early; it makes coding easier for me though may make loading take longer. Not ideal practice -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>
+	.target {
+		border: 1px solid red;
+	}
+	</style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Understanding jQuery UI Widgets: A Tutorial</h1>
+        <p class="view"><a href="https://github.com/dwachss">View My GitHub Profile</a></p>
+        <ul>
+          <li><a href="https://github.com/dwachss/dwachss.github.io/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/dwachss/dwachss.github.io/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/dwachss/dwachss.github.io">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+<p>This was written largely to help me make sense of using UI to create my own widgets,
+but I hope it may help others. "Widget" to me means a user-interface element, like
+a button or something more complicated like a popup date picker, but in jQuery UI terms
+it means a class with some saved state, members of which are associated with HTML elements; things like
+<a href="http://jqueryui.com/draggable/">Draggable</a> and 
+<a href="http://jqueryui.com/sortable/">Sortable</a>.
+In fact, not everything that I would have called a widget uses <code>$.widget</code>; the UI datepicker does not (though that's in the TODO list).</p>
+<p>There is an official jQuery UI <a href="http://learn.jquery.com/jquery-ui/widget-factory/">tutorial on widgets</a> but since I wrote this tutorial back in 2009 it's been the most popular article on my blog, so I'm preserving it. You can see the <a href="http://bililite.com/blog/understanding-jquery-ui-widgets-a-tutorial/">original version</a>.</p> 
+<h4>Modifying Elements: Plugins</h4>
+<p>That being as it may, let's use <code>$.widget</code>.</p>
+<div>
+	<p>Let's take a paragraph of class target:</p>
+	<pre><code class="language-html demo">
+	&lt;p class=&quot;target&quot;&gt;This is a paragraph&lt;/p&gt;
+	</code></pre>
+	<p>And lets make it green. We know how; <code class="language-javascript">$('.target').css({background: 'green'})</code>.</p>
+	<input type="button" value="test" id="button1" />
+	<script>
+		var targetstate = 'none';
+		$('#button1').click(function() {
+			if (targetstate == 'none'){
+				targetstate = 'green';
+				$(this).prevAll('.target').css({background: 'green'});
+			}else{
+				targetstate = 'none';
+				$(this).prevAll('.target').css({background: 'none'});
+			}
+		});
+	</script>
+	<p>Now, make it more general-purpose: a <a href="http://docs.jquery.com/Plugins/Authoring">plugin</a>:</p>
+	<pre><code class="language-javascript demo">$.fn.green = function() {return this.css({background: 'green'})};</code></pre>
+	<input type="button" value="test" id="button2"/>
+	<script>
+		$('#button2').click(function() {
+			if (targetstate == 'none'){
+				targetstate = 'green';
+				$(this).prevAll('.target').green();
+			}else{
+				targetstate = 'none';
+				$(this).prevAll('.target').css({background: 'none'});
+			}
+		});
+	</script>
+</div><p>But this allows us to perform some behavior on the selected elements; it does not leave us with any way to
+keep our plugin associated with that element, so we can do something with it later, like
+<code>$('.target').off()</code> to remove the green background, but only if we used green to
+put it there in the beginning. We also have no way of associating
+state with the element, to do $('.target').darker(), which would require knowing how green the element is now.
+<h4>Keeping State in Plugins</h4>
+We could create an object and associate it with an element using javascript 
+<a href="http://develocity.blogspot.com/2007/04/its-hard-to-know-where-to-start-but.html">expandos</a>: 
+<code class="language-javascript">element.myobject = new Myobject({'target': element})</code>. Sample code would be:</p>
+<pre><code class="language-javascript">
+$.fn.green2 = function() {
+	return this.each(function(){
+			if (!this.green) this.green = new Green($(this)); // associate our state-keeping object with the element
+			this.green.setLevel(15);
+	});
+};
+$.fn.off = function() {
+	return this.each(function(){
+		if (this.green) this.green.setLevel(16);
+		delete this.green; // recover the memory
+	});
+};
+$.fn.darker = function() {
+	return this.each(function(){
+		if (this.green) this.green.setLevel(this.green.getLevel()-1);
+	});
+};
+$.fn.lighter = function() {
+	return this.each(function(){
+		if (this.green) this.green.setLevel(this.green.getLevel()+1);
+	});
+};
+
+function Green(target){
+	greenlevels = ['#000','#010','#020','#030','#040','#050','#060','#070','#080','#090','#0a0','#0b0','#0c0','#0d0','#0e0','#0f0','#fff'];
+	this.target = target; // associate the element with the object
+	this.level = 0;
+	this.getLevel = function() { return this.level; }
+	this.setLevel = function(x) {
+		this.level = Math.floor(Math.min(greenlevels.length-1, Math.max(0,x)));
+		this.target.css({background: greenlevels[this.level]});
+	}
+};
+</code></pre>
+
+<p>But this pollutes the <code class="language-javascript">$.fn</code> namespace terribly, with <code>off</code>, <code>darker</code> and <code>lighter</code>.
+There are ways to create real namespaces within <code class="language-javascript">$.fn</code>, but the usual design pattern is to use a string to
+specify which function to call. Thus, <code class="language-javascript">element.green2()</code> to instantiate the plugin, 
+<code class="language-javascript">element.green2('darker')</code> or <code class="language-javascript">element.green2('lighter')</code>
+to manipulate it:</p>
+<pre><code class="language-javascript demo">
+$.fn.green2 = function(which){
+	return this.each(function(){
+		if (which === undefined){ // initial call
+			if (!this.green) this.green = new Green($(this)); // associate our state-keeping object with the element
+			this.green.setLevel(15);
+		}else if (which == 'off'){
+			if (this.green) this.green.setLevel(16);
+			delete this.green
+		}else if (which == 'darker'){
+			if (this.green) this.green.setLevel(this.green.getLevel()-1);
+		}else if (which == 'lighter'){
+			if (this.green) this.green.setLevel(this.green.getLevel()+1);
+		}
+	});
+};
+
+function Green(target){
+	greenlevels = ['#000','#010','#020','#030','#040','#050','#060','#070','#080','#090','#0a0','#0b0','#0c0','#0d0','#0e0','#0f0', '#fff'];
+	this.target = target; // associate the element with the object
+	this.level = 0;
+	this.getLevel = function() { return this.level; }
+	this.setLevel = function(x) {
+		this.level = Math.floor(Math.min(greenlevels.length-1, Math.max(0,x)));
+		this.target.css({background: greenlevels[this.level]});
+	}
+};
+</code></pre>
+<div id="test2">
+	<pre><code class="language-html demo">
+	&lt;p class=&quot;target&quot;&gt;This is a test paragraph&lt;/p&gt;
+	</code></pre>
+	<input type="button" value="on"/>
+	<input type="button" value="darker"/>
+	<input type="button" value="lighter"/>
+	<input type="button" value="off"/>
+	<script>	
+		$('#test2 input[value=on]').click(function() {$(this).prevAll('.target').green2()});
+		$('#test2 input[value=darker]').click(function() {$(this).prevAll('.target').green2('darker')});
+		$('#test2 input[value=lighter]').click(function() {$(this).prevAll('.target').green2('lighter')});
+		$('#test2 input[value=off]').click(function() {$(this).prevAll('.target').green2('off')});
+	</script>
+</div>
+<h4>The Problems with Associating an Object with a Plugin</h4>
+<p>But you get into trouble with circular
+references (note that "<code class="language-javascript">this.green = new Green($(this))</code>" gives a DOM element a reference to a javascript object
+and
+"<code class="language-javascript">this.target = target</code>" gives a javascript object a reference to a DOM element) and 
+<a href="http://www.codeproject.com/KB/scripting/leakpatterns.aspx">memory leaks</a>:
+browsers (notably Internet Explorer) uses different garbage collectors for DOM elements and javascript objects.
+Circular references mean that each garbage collector thinks the other object is in use and won't delete them.</p>
+<p>We also need to remember to reclaim the memory (with <code>delete</code>) if we no longer need the plugin.</p>
+
+<p>jQuery solves the circular reference problem with the <code class="language-javascript">$.fn.data</code> plugin:
+<code>$(element).data('myobject', new Myobject({'target': element}))</code>. But now we've got a lot of "paperwork" to
+keep track of, and it hides the underlying program logic. As we know, 
+<a href="http://blog.plover.com/2006/09/11/">design patterns reflect language weakness</a>.
+If we are
+constantly re-implementing a pattern, we need to abstract it and make it automatic.</p>
+<h4>Solving the Problem: $.widget</h4>
+That's where <code>$.widget</code> comes
+in. It creates a plugin and an associated javascript class and ties an instance of that class with each
+element so we can interact with the object and act on the element, without getting into trouble with
+memory leaks.</p>
+<p>You still need to create the constructor of your class, but instead of a real constructor function, you need
+a prototype object with all the relevant methods. There are a few conventions: the function <code>_create</code> is called on construction, <code>_init</code> is called both on construction and for re-initializing
+the function and <code>_destroy</code> is called on removal. All of these are predefined as empty functions but you can override them (and most likely
+will need to override <code>_init</code>). <code>element</code> is the associated jQuery object (what we called <code>target</code> above).</p>
+<p>Widget methods that start with "<code>_</code>" are pseudo-private; they cannot be called with the $(element).plugin('string') notation
+<pre><code class="language-javascript demo">
+var Green3  = {
+	_init: function() { this.setLevel(15); },
+	greenlevels: ['#000','#010','#020','#030','#040','#050','#060','#070','#080','#090','#0a0','#0b0','#0c0','#0d0','#0e0','#0f0', '#fff'],
+	level: 0,
+	getLevel: function() { return this.level; },
+	setLevel: function(x) {
+		this.level = Math.floor(Math.min(this.greenlevels.length-1, Math.max(0,x)));
+		this.element.css({background: this.greenlevels[this.level]});
+	},
+	darker: function() { this.setLevel(this.getLevel()-1); },
+	lighter: function() { this.setLevel(this.getLevel()+1); },
+	_destroy: function() {
+		this.element.css({background: 'none'});
+	}
+};
+</code></pre>
+<p>Notice it's all program logic, no DOM or memory-related bookkeeping. Now we need to create a name, which must be preceded by a
+namespace, like "<code>ns.green</code>" . Unfortunately the namespacing is fake; the plugin is just called <code>$().green()</code>. The constructor function
+is <code>$.ns.green</code>, but you almost never use that.  The <a href="http://learn.jquery.com/jquery-ui/widget-factory/how-to-use-the-widget-factory/#closing-comments">official recommendations</a> read:</p>
+<blockquote>When building your own plugins, you should create your own namespace. This makes it clear where the plugin came from and if it is part of a larger collection.</blockquote>
+<p>So I will use the <code>bililite</code> namespace. Defining the widget couldn't be easier:</p>
+<pre><code class="language-javascript demo">
+$.widget("bililite.green3", Green3); // create the widget
+</code></pre>
+<h4>Manipulating Widgets</h4>
+<p>What about our manipulating functions? All the functions defined in the prototype that don't start with an underscore are exposed automatically:
+<code class="language-javascript">$('.target').green3()</code> creates the widgets; <code class="language-javascript">$('.target').green3('darker')</code> manipulates them.</p>
+
+<p>There are two kinds of plugin functions: getters and setters. <em>Setters</em> manipulate elements and can be chained in jQuery code; they just return the jQuery object they started with. For example, <code class="language-javascript">$('.demo').css({color: 'red'}).text('stuff')</code>. <em>Getters</em> return information and break the chain, like <code class="language-javascript">text = $('.demo').text()</code>. <code>widget</code> distinguishes between the two by the return value: if your function returns any value other than <code>undefined</code>, it assumes that it is a getter and returns that value (for the first element in the jQuery object, just like all jQuery getter functions). If it does not return a value, then it is assumed to be a setter and is called on each element in the jQuery object, and the jQuery object itself is returned for chaining.</p>
+<div id="test3">
+	<pre><code class="language-html demo">
+	&lt;p class=&quot;target&quot;&gt;This is a test paragraph.&lt;/p&gt;
+	</code></pre>
+	<input type="button" value="on"/>
+	<input type="button" value="darker"/>
+	<input type="button" value="lighter"/>
+	<input type="button" value="off"/>
+</div>
+<script>
+	$('#test3 input[value=on]').click(function() {$(this).prevAll('.target').green3()});
+	$('#test3 input[value=darker]').click(function() {$(this).prevAll('.target').green3('darker')});
+	$('#test3 input[value=lighter]').click(function() {$(this).prevAll('.target').green3('lighter')});
+	$('#test3 input[value=off]').click(function() {$(this).prevAll('.target').green3('destroy')});
+</script>
+<p>Pass arguments to the manipulating functions after the name: <code>$('.target').green3('setLevel', 5)</code>.</p>
+<h4>Data for Each Widget</h4>
+<p>The astute reader will have noticed that <code>level</code> is a class variable; the same variable is used
+for every green3 object. This is clearly not what we want; each instance should have its own copy.
+$.widget defines an object
+<code class="language-javascript">this.options</code> for per-widget data.
+Thus:</p>
+<pre><code class="language-javascript demo">
+var Green4  = { 
+	getLevel: function () { return this.options.level; },
+	setLevel: function (x) {
+		var greenlevels = this.options.greenlevels;
+		var level = Math.floor(Math.min(greenlevels.length-1, Math.max(0,x)));
+		this.options.level = level;
+		this.element.css({background: greenlevels[level]});
+	},
+	_init: function() { this.setLevel(this.getLevel()); }, // grab the default value and use it
+	darker: function() { this.setLevel(this.getLevel()-1); },
+	lighter: function() { this.setLevel(this.getLevel()+1); },
+	_destroy: function() {
+		this.element.css({background: 'none'});
+	},
+	options: { // initial values are stored in the widget's prototype
+		level: 15,
+		greenlevels: ['#000','#010','#020','#030','#040','#050','#060','#070','#080','#090','#0a0','#0b0','#0c0','#0d0','#0e0','#0f0', '#fff']
+	} 
+};
+$.widget("bililite.green4", Green4);
+</code></pre>
+
+<p>And on creating an instance of a widget, pass an options object (the way most plugins do)
+and override the defaults:
+<code class="language-javascript">$('.target').green4({level: 8})</code>.</p>
+<p>Note that I also put the list of colors into the defaults object, so it too can be overridden.
+This widget probably shouldn't be called
+"green" anymore!</p>
+
+<div id="test4">
+	<pre><code class="language-html demo">
+	&lt;p class=&quot;target&quot;&gt;This is a test paragraph.&lt;/p&gt;
+	</code></pre>
+	<input type="button" value="on"/>
+	<input type="button" value="darker"/>
+	<input type="button" value="lighter"/>
+	<input type="button" value="off"/>
+</div>
+<script>
+	$('#test4 input[value=on]').click(function() {$(this).prevAll('.target').green4()});
+	$('#test4 input[value=darker]').click(function() {$(this).prevAll('.target').green4('darker')});
+	$('#test4 input[value=lighter]').click(function() {$(this).prevAll('.target').green4('lighter')});
+	$('#test4 input[value=off]').click(function() {$(this).prevAll('.target').green4('destroy')});
+</script>
+<div id="test4-1">
+	<pre><code class="language-html demo">
+	&lt;p class=&quot;target&quot;&gt;
+	This is a test paragraph called with .green4({
+		level:3,
+		greenlevels: ['#000','#00f','#088', '#0f0', '#880', '#f00', '#808', '#fff']
+	}).
+	&lt;/p&gt;
+	</code></pre>
+	<input type="button" value="on"/>
+	<input type="button" value="darker"/>
+	<input type="button" value="lighter"/>
+	<input type="button" value="off"/>
+</div>
+<script>
+	$('#test4-1 input[value=on]').click(function() {$(this).prevAll('.target').green4({
+		level:3,
+		greenlevels: ['#000','#00f','#088', '#0f0', '#880', '#f00', '#808', '#fff']
+	})});
+	$('#test4-1 input[value=darker]').click(function() {$(this).prevAll('.target').green4('darker')});
+	$('#test4-1 input[value=lighter]').click(function() {$(this).prevAll('.target').green4('lighter')});
+	$('#test4-1 input[value=off]').click(function() {$(this).prevAll('.target').green4('off')});
+</script>
+<p>You can get any of the options with <code class="language-javascript">$().green4('option','level')</code>, which in this case is the same as <code class="language-javascript">$().green4('getLevel')</code>. Whether to have a dedicated getter is up to you.</p>
+<p>You can also set options with <code class="language-javascript">$().green4('option','level', 10)</code> however, that only sets the variable but does not do the action associated with it. You can override the default <code class="language-javascript">_setOption</code> method to do some action with</p>
+<pre><code class="language-javascript">_setOption: function (key, value){
+	if (key === 'level') this.setLevel(value);
+	if (key === 'greenlevels'){
+		this.options.greenlevels = value;
+		this.setLevel(this.getLevel()); // force the redraw
+	}
+	return this._super(key, value); // do the default action
+}
+</code></pre>
+
+<h4>Callbacks, or, Keeping the Lines of Communication Open</h4>
+<p>The programmer who is embedding our widget in his page may want to do other things when the widget changes state. 
+There are two ways to alert the calling program that something has happened:</p>
+<dl>
+<dt>Tightly Coupled</dt>
+<dd>The caller can provide a function to call at the critical point. jQuery jargon calls this a "callback;" it's used in
+<a href="http://docs.jquery.com/Effects/show#speedcallback">animations</a> and 
+<a href="http://docs.jquery.com/Ajax/load#urldatacallback">Ajax</a>. We can create callback functions
+that the widget calls at critical points, and pass them to the widget-constructing plugin like any other option:
+<pre><code class="language-javascript">
+var Green5 = {
+	setLevel: function(x){
+		//...
+		this.element.css({background: greenlevels[level]});
+		var callback = this.options.change;
+		if ($.isFunction(callback)) callback(level);
+	},
+	// ... rest of widget definition
+};
+$.widget("bililite.green5", Green5);
+
+$('.target').green5({change: function(x) { alert ("The color changed to "+x); } });
+</code></pre>
+</dd>
+<dt>Loosely Coupled</dt>
+<dd>Also called the <a href="http://en.wikipedia.org/wiki/Observer_pattern">Observer Design Pattern</a>, the widget sends a signal to
+the programming framework and the calling program informs the framework that it wants to know about the signal. Events like
+clicks and keystrokes work like this, and jQuery allows the widget to create custom events and for the calling program to
+bind an event handler to that custom event:
+<pre><code class="language-javascript">
+var Green5 = {
+	setLevel: function(x){
+		//...
+		this.element.css({background: greenlevels[level]});
+		this.element.trigger ('green5change', level);
+	},
+	// ... rest of widget definition
+};
+$.widget("bililite.green5", Green5);
+
+$('.target').green5();
+$('.target').bind("green5change", function(evt,x) { alert ("The color changed to "+x); });
+</code></pre>
+</dd>
+</dl>
+
+<p><code>$.widget</code> allows both forms with the <code>_trigger</code> method. In a widget object,
+<code class="language-javascript">this._trigger(type, event, data)</code> takes a <code>type {String}</code> with the
+name of the event you want (use some short verb, like <code>'change'</code>) and optionally a 
+<a href="http://docs.jquery.com/Events/jQuery.Event">$.Event object</a> (if you want to pass things like timestamps and mouse locations.
+Don't worry about <code>event.type</code>; <code>_trigger</code> changes it to the constructed event name), and any data to be passed
+to the handler. <code>_trigger</code> creates a custom event name of <code>widgetName+type</code>, like <code>green6change</code>
+(<strike>why it doesn't do <code>type+'.'+widgetName</code> <a href="http://docs.jquery.com/Namespaced_Events">the way jQuery expects</a>
+is beyond me</strike> naming events this way has been the subject of <a href="http://groups.google.com/group/jquery-ui-dev/browse_thread/thread/7c6973343a233e2a/284544f3abbfafe4">some</a> <a href="http://dev.jqueryui.com/ticket/2340">discussion</a>), sets <code>event.type = custom event name</code> (creating a new <code>$.Event</code> if it was not provided)
+and calls <code class="language-javascript">this.element.trigger(event, data)</code> and then looks for a callback with
+<code class="language-javascript">callback = this._getData(type)</code> and calls it with 
+<code class="language-javascript">callback.call(this.element[0], event, data)</code>.</p>
+<p>Notice that this means the function signature is slightly different for the event handler and the callback if <code>data</code>
+is an array. <code>element.trigger()</code> uses <code>apply</code> to turn each item in the array into a separate argument.
+So <code class="language-javascript">this._trigger('change', 0, ['one', 'two'])</code> 
+requires an event handler of the form <code class="language-javascript">function(event, a, b)</code> and a callback of the form
+<code class="language-javascript">function(event, data)</code>.</p>
+<p>There's a <a href="https://github.com/jquery/jquery-ui/blob/master/ui/widget.js#L130">TODO in the code</a> to change the event name to include a colon, thus <code>"green5:change"</code> rather than <code>"green5change"</code> which would be prettier, but it's not there as of version 1.11.</p>
+<p>In practice, it's not as complicated as it sounds. For example, using both methods:</p>
+
+<pre><code class="language-javascript demo">
+var Green5  = {
+	getLevel: function () { return this.options.level; },
+	setLevel: function (x) {
+		var greenlevels = this.options.greenlevels;
+		var level = Math.floor(Math.min(greenlevels.length-1, Math.max(0,x)));
+		this.options.level = level;
+		this.element.css({background: greenlevels[level]});
+		this._trigger('change', 0, level);
+	},
+	_init: function() { this.setLevel(this.getLevel()); }, // grab the default value and use it
+	darker: function() { this.setLevel(this.getLevel()-1); },
+	lighter: function() { this.setLevel(this.getLevel()+1); },
+	off: function() {
+		this.element.css({background: 'none'});
+		this._trigger('done');
+		this.destroy(); // use the predefined function
+	},
+	options: {
+		level: 15,
+		greenlevels: ['#000','#010','#020','#030','#040','#050','#060','#070','#080','#090','#0a0','#0b0','#0c0','#0d0','#0e0','#0f0', '#fff']
+	}
+};
+$.widget("bililite.green5", Green5);
+</code></pre>
+<div id="test5">
+	<pre><code class="language-html demo">
+	&lt;p class=&quot;target&quot;&gt;This is a test paragraph with green level &lt;span class=&quot;level&quot;&gt;undefined&lt;/span&gt;.&lt;/p&gt; 
+	</code></pre>
+	<input type="button" value="on"/>
+	<input type="button" value="darker"/>
+	<input type="button" value="lighter"/>
+	<input type="button" value="off"/>
+</div>
+<pre><code class="language-javascript">
+//  The on button above does the following:
+$('.target').green5({
+	change: function(event, level) { $('.level', this).text(level); } // callback to handle change event
+});
+$('.target').bind('green5done', function() { $('.level', this).text('undefined');alert('bye!') }); // event handler for done event
+</code></pre>
+<script>
+$('#test5 input[value=on]').click(function() {
+	$(this).prevAll('.target').green5({
+		change: function(evt, x){
+			$('.level', this).text(x); // callback function
+		}
+	}).unbind('green5done') // in case 'on' is clicked more than once
+	.bind('green5done', function() {
+		$('.level', this).text('undefined');
+		alert('bye!');
+	});
+});
+$('#test5 input[value=darker]').click(function() {$(this).prevAll('.target').green5('darker')});
+$('#test5 input[value=lighter]').click(function() {$(this).prevAll('.target').green5('lighter')});
+$('#test5 input[value=off]').click(function() {$(this).prevAll('.target').green5('off')});
+</script>
+<h4>Involving the Mouse</h4>
+<p>Now, a lot of what we want to do with widgets involves mouse tracking, so <code>ui.core.js</code> provides a mixin object that
+includes lots of useful methods for the mouse. All we need to do is add the <code>$.ui.mouse</code> widget to our
+widget prototype:</p>
+<pre><code class ="language-javascript">
+var Green6 = {mouse-overriding function and widget-specific functions};
+$.widget ('bililite.green6', $.ui.mouse, Green6);
+</code></pre>
+<p>And override <code>$.ui.mouse</code>'s functions (<code>_mouseStart</code>,
+<code>_mouseDrag</code>,
+<code>_mouseStop</code>) to do something useful,
+and call <code class="language-javascript">this._mouseInit</code>
+in your <code class="language-javascript">this._init</code> and <code class="language-javascript">this._mouseDestroy</code>
+in your <code class="language-javascript">this.destroy</code>. The mouse defaults are automagically including in your options object; see the <a href="https://github.com/jquery/jquery-ui/blob/master/ui/mouse.js">mouse code</a> for details.</p>
+
+<p>Let's add some mouse control to our greenerizer:
+<pre><code class="language-javascript demo">
+Green6 = $.extend({}, $.bililite.green5.prototype, { // leave the old Green5 alone; create a new object
+	_init: function(){
+		$.bililite.green5.prototype._init.call(this); // call the original function
+		this._mouseInit(); // start up the mouse handling
+	},
+	destroy: function(){
+		this._mouseDestroy();
+		$.bililite.green5.prototype.destroy.call(this); // call the original function
+	},
+	// need to override the mouse functions
+	_mouseStart: function(e){
+		// keep track of where the mouse started
+		this.xStart = e.pageX; // not in the options object; this is not something that can be initialized by the user
+		this.levelStart = this.options.level;
+	},
+	_mouseDrag: function(e){
+		this.setLevel (this.levelStart +(e.pageX-this.xStart)/this.options.distance);
+	},
+	options: {
+		level: 15,
+		greenlevels: ['#000','#010','#020','#030','#040','#050','#060','#070','#080','#090','#0a0','#0b0','#0c0','#0d0','#0e0','#0f0', '#fff'],
+		distance: 10
+	}
+});
+$.widget("bililite.green6", $.ui.mouse, Green6);
+</code></pre>
+<div id="test6">
+	<pre><code class="language-html demo">
+	&lt;p class=&quot;target&quot;&gt;This is a test paragraph with green level &lt;span class=&quot;level&quot;&gt;undefined&lt;/span&gt;.&lt;/p&gt;
+	</code></pre>
+	<input type="button" value="on"/>
+	<input type="button" value="darker"/>
+	<input type="button" value="lighter"/>
+	<input type="button" value="off"/>
+</div>
+<script>
+$('#test6 input[value=on]').click(function() {
+	$(this).prevAll('.target').green6({
+		change: function(evt, x){
+			$('.level', this).text(x);
+		},
+		done: function(){
+			$('.level', this).text('undefined');
+		}
+	});
+});
+$('#test6 input[value=darker]').click(function() {$(this).prevAll('.target').green6('darker')});
+$('#test6 input[value=lighter]').click(function() {$(this).prevAll('.target').green6('lighter')});
+$('#test6 input[value=off]').click(function() {$(this).prevAll('.target').green6('off')});
+</script>
+<p>The ever-alert reader will note what we've just done: subclassed green5 to make green6, including calls
+to "super" methods. This can to be abstracted out
+but that's a <a href="extending-jquery-ui-widgets.html">topic for another day</a>.</p>
+      </section>
+      <footer>
+		<p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"></a><br>This work is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    <script src="https://rawgit.com/LeaVerou/prism/gh-pages/prism.js"></script>
+    <script src="javascripts/bililitedemo.js"></script>
+   
+  </body>
+</html>
