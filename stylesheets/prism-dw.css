@@ -8,7 +8,7 @@ code[class*="language-"],
 pre[class*="language-"] {
 	color: black;
 	text-shadow: 0 1px white;
-	font-family: Consolas, Monaco, 'Andale Mono', monospace;
+	font-family: "Source Code Pro", Consolas, Monaco, 'Andale Mono', monospace; /* modified 2015-02-04 DHW */
 	direction: ltr;
 	text-align: left;
 	/* white-space: pre; removed DHW since I don't want my <code> elements to act like <pre> unless I say so */
@@ -80,7 +80,7 @@ pre[class*="language-"] {
 .token.atrule,
 .token.attr-value,
 .token.keyword {
-	color: #07a;
+	color: #00f;
 }
 
 
@@ -97,14 +97,13 @@ pre[class*="language-"] {
 	cursor: help;
 }
 
-/* added 2102-08-03 DHW */
 .token.jquery {
-	text-decoration: underline;
+	font-weight: bold;
 }
 
 /* added from http://aahacreative.com/2012/07/31/php-syntax-highlighting-prism/ */
 .token.function, .token.constant {
-	color: #07a;
+	color: #01a;
 }
 .token.variable {
 	color: #e90;
