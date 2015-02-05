@@ -41,6 +41,7 @@
 			<p><a href="index.html">Projects</a></>
 			<p><a href="understanding-widgets.html">Understanding jQuery UI Widgets</a></p>
 			<p><a href="extending-widgets.html">Extending jQuery UI Widgets</a></p>
+			<p><a href="deeper-widgets.html">A Deeper Look at jQuery UI Widgets</a></p>
 		</nav>
      </header>
       <section>
@@ -202,6 +203,8 @@ $.widget('bililite.superboxwithmouseover2', $.bililite.supererbox, {
 </code></pre>
 <p>I use it. Your mileage may vary.</p>
 
+<p>There is one other method that should always call <code class="language-javascript">_super</code>: <code class="language-javascript">_setOption</code>. The <code class="language-javascript">_setOption</code> method in the widget should handle specific options for that widget, and the <code class="language-javascript">_super</code> code handles any other options (at the very least, the base class <code class="language-javascript">$.Widget</code> sets the values in the <code class="language-javascript">options</code> object). But there's no way to know whether to call <code class="language-javascript">_setOption</code> before or after the new code; you might want to constrain a value before it is set, or do a different action (and not call <code class="language-javascript">_super</code> at all). So I don't automatically call it. Also, some of the official widgets use <code class="language-javascript">_super</code> in <code class="language-javascript">_setOption</code>, and they call it explicitly, so calling it again might cause problems.</p>
+
 <div class="target" id="experiment5">Experiment 5 (Click Me)</div>
 <div><input type="button" id="home5" value="Bring It Home"/></div>
 
@@ -281,7 +284,7 @@ we added the behavior to each object after the object was created.</p>
 <p>Note that I did not use the widget factory directly. It may be possible to make this more efficient, but I haven't analyzed the code in jQuery UI 1.8 closely enough.</p>     </section>
       <footer>
 		<p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"></a><br>This work is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme Based on Minimalist by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
       </footer>
     </div>
     <script src="javascripts/scale.fix.js"></script>

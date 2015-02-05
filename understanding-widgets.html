@@ -9,13 +9,13 @@
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
     <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/themes/smoothness/jquery-ui.css" />
     <link rel="stylesheet" href="stylesheets/prism-dw.css" />
-	<!--This loads jQuery early; it makes coding easier for me though may make loading take longer. Not ideal practice -->
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<style>
 	.target {
 		border: 1px solid red;
+	}
+	input[type=button] {
+		margin: 2px 0 10px 0;
 	}
 	</style>
   </head>
@@ -33,6 +33,7 @@
 			<p><a href="index.html">Projects</a></>
 			<p><a href="understanding-widgets.html">Understanding jQuery UI Widgets</a></p>
 			<p><a href="extending-widgets.html">Extending jQuery UI Widgets</a></p>
+			<p><a href="deeper-widgets.html">A Deeper Look at jQuery UI Widgets</a></p>
 		</nav>
      </header>
       <section>
@@ -53,32 +54,9 @@ In fact, not everything that I would have called a widget uses <code>$.widget</c
 	</code></pre>
 	<p>And lets make it green. We know how; <code class="language-javascript">$('.target').css({background: 'green'})</code>.</p>
 	<input type="button" value="test" id="button1" />
-	<script>
-		var targetstate = 'none';
-		$('#button1').click(function() {
-			if (targetstate == 'none'){
-				targetstate = 'green';
-				$(this).prevAll('.target').css({background: 'green'});
-			}else{
-				targetstate = 'none';
-				$(this).prevAll('.target').css({background: 'none'});
-			}
-		});
-	</script>
 	<p>Now, make it more general-purpose: a <a href="http://docs.jquery.com/Plugins/Authoring">plugin</a>:</p>
 	<pre><code class="language-javascript demo">$.fn.green = function() {return this.css({background: 'green'})};</code></pre>
 	<input type="button" value="test" id="button2"/>
-	<script>
-		$('#button2').click(function() {
-			if (targetstate == 'none'){
-				targetstate = 'green';
-				$(this).prevAll('.target').green();
-			}else{
-				targetstate = 'none';
-				$(this).prevAll('.target').css({background: 'none'});
-			}
-		});
-	</script>
 </div><p>But this allows us to perform some behavior on the selected elements; it does not leave us with any way to
 keep our plugin associated with that element, so we can do something with it later, like
 <code>$('.target').off()</code> to remove the green background, but only if we used green to
@@ -165,12 +143,6 @@ function Green(target){
 	<input type="button" value="darker"/>
 	<input type="button" value="lighter"/>
 	<input type="button" value="off"/>
-	<script>	
-		$('#test2 input[value=on]').click(function() {$(this).prevAll('.target').green2()});
-		$('#test2 input[value=darker]').click(function() {$(this).prevAll('.target').green2('darker')});
-		$('#test2 input[value=lighter]').click(function() {$(this).prevAll('.target').green2('lighter')});
-		$('#test2 input[value=off]').click(function() {$(this).prevAll('.target').green2('off')});
-	</script>
 </div>
 <h4>The Problems with Associating an Object with a Plugin</h4>
 <p>But you get into trouble with circular
@@ -197,6 +169,7 @@ memory leaks.</p>
 a prototype object with all the relevant methods. There are a few conventions: the function <code>_create</code> is called on construction, <code>_init</code> is called both on construction and for re-initializing
 the function and <code>_destroy</code> is called on removal. All of these are predefined as empty functions but you can override them (and most likely
 will need to override <code>_init</code>). <code>element</code> is the associated jQuery object (what we called <code>target</code> above).</p>
+<p>"Re-initializing" (that calls <code>_init</code>) is done by passing by calling the widget plugin on an element that already has that widget, as <code>$(el).widget()</code>or <code>$(el).widget({option: value})</code>. Calling it with a string, as <code>$(el).widget('method', arg1, arg2)</code> assumes an already-initialized widget (it will throw an error if not), and calls <code>method(arg1, arg2)</code>.</p>
 <p>Widget methods that start with "<code>_</code>" are pseudo-private; they cannot be called with the $(element).plugin('string') notation
 <pre><code class="language-javascript demo">
 var Green3  = {
@@ -237,12 +210,6 @@ $.widget("bililite.green3", Green3); // create the widget
 	<input type="button" value="lighter"/>
 	<input type="button" value="off"/>
 </div>
-<script>
-	$('#test3 input[value=on]').click(function() {$(this).prevAll('.target').green3()});
-	$('#test3 input[value=darker]').click(function() {$(this).prevAll('.target').green3('darker')});
-	$('#test3 input[value=lighter]').click(function() {$(this).prevAll('.target').green3('lighter')});
-	$('#test3 input[value=off]').click(function() {$(this).prevAll('.target').green3('destroy')});
-</script>
 <p>Pass arguments to the manipulating functions after the name: <code>$('.target').green3('setLevel', 5)</code>.</p>
 <h4>Data for Each Widget</h4>
 <p>The astute reader will have noticed that <code>level</code> is a class variable; the same variable is used
@@ -289,12 +256,6 @@ This widget probably shouldn't be called
 	<input type="button" value="lighter"/>
 	<input type="button" value="off"/>
 </div>
-<script>
-	$('#test4 input[value=on]').click(function() {$(this).prevAll('.target').green4()});
-	$('#test4 input[value=darker]').click(function() {$(this).prevAll('.target').green4('darker')});
-	$('#test4 input[value=lighter]').click(function() {$(this).prevAll('.target').green4('lighter')});
-	$('#test4 input[value=off]').click(function() {$(this).prevAll('.target').green4('destroy')});
-</script>
 <div id="test4-1">
 	<pre><code class="language-html demo">
 	&lt;p class=&quot;target&quot;&gt;
@@ -309,15 +270,6 @@ This widget probably shouldn't be called
 	<input type="button" value="lighter"/>
 	<input type="button" value="off"/>
 </div>
-<script>
-	$('#test4-1 input[value=on]').click(function() {$(this).prevAll('.target').green4({
-		level:3,
-		greenlevels: ['#000','#00f','#088', '#0f0', '#880', '#f00', '#808', '#fff']
-	})});
-	$('#test4-1 input[value=darker]').click(function() {$(this).prevAll('.target').green4('darker')});
-	$('#test4-1 input[value=lighter]').click(function() {$(this).prevAll('.target').green4('lighter')});
-	$('#test4-1 input[value=off]').click(function() {$(this).prevAll('.target').green4('off')});
-</script>
 <p>You can get any of the options with <code class="language-javascript">$().green4('option','level')</code>, which in this case is the same as <code class="language-javascript">$().green4('getLevel')</code>. Whether to have a dedicated getter is up to you.</p>
 <p>You can also set options with <code class="language-javascript">$().green4('option','level', 10)</code> however, that only sets the variable but does not do the action associated with it. You can override the default <code class="language-javascript">_setOption</code> method to do some action with</p>
 <pre><code class="language-javascript">_setOption: function (key, value){
@@ -436,22 +388,6 @@ $('.target').green5({
 });
 $('.target').bind('green5done', function() { $('.level', this).text('undefined');alert('bye!') }); // event handler for done event
 </code></pre>
-<script>
-$('#test5 input[value=on]').click(function() {
-	$(this).prevAll('.target').green5({
-		change: function(evt, x){
-			$('.level', this).text(x); // callback function
-		}
-	}).unbind('green5done') // in case 'on' is clicked more than once
-	.bind('green5done', function() {
-		$('.level', this).text('undefined');
-		alert('bye!');
-	});
-});
-$('#test5 input[value=darker]').click(function() {$(this).prevAll('.target').green5('darker')});
-$('#test5 input[value=lighter]').click(function() {$(this).prevAll('.target').green5('lighter')});
-$('#test5 input[value=off]').click(function() {$(this).prevAll('.target').green5('off')});
-</script>
 <h4>Involving the Mouse</h4>
 <p>Now, a lot of what we want to do with widgets involves mouse tracking, so <code>ui.core.js</code> provides a mixin object that
 includes lots of useful methods for the mouse. All we need to do is add the <code>$.ui.mouse</code> widget to our
@@ -504,33 +440,97 @@ $.widget("bililite.green6", $.ui.mouse, Green6);
 	<input type="button" value="lighter"/>
 	<input type="button" value="off"/>
 </div>
-<script>
-$('#test6 input[value=on]').click(function() {
-	$(this).prevAll('.target').green6({
-		change: function(evt, x){
-			$('.level', this).text(x);
-		},
-		done: function(){
-			$('.level', this).text('undefined');
-		}
-	});
-});
-$('#test6 input[value=darker]').click(function() {$(this).prevAll('.target').green6('darker')});
-$('#test6 input[value=lighter]').click(function() {$(this).prevAll('.target').green6('lighter')});
-$('#test6 input[value=off]').click(function() {$(this).prevAll('.target').green6('off')});
-</script>
 <p>The ever-alert reader will note what we've just done: subclassed green5 to make green6, including calls
 to "super" methods. This can to be abstracted out
 but that's a <a href="extending-jquery-ui-widgets.html">topic for another day</a>.</p>
       </section>
       <footer>
 		<p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"></a><br>This work is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme Based on Minimalist by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
       </footer>
     </div>
     <script src="javascripts/scale.fix.js"></script>
-    <script src="https://rawgit.com/LeaVerou/prism/gh-pages/prism.js"></script>
+ 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
+	<script src="https://rawgit.com/LeaVerou/prism/gh-pages/prism.js"></script>
+    <script src="javascripts/prism.linenumber.js"></script>
     <script src="javascripts/bililitedemo.js"></script>
-   
+   	<script>
+	$(document).ready(function(){
+		var targetstate = 'none';
+		$('#button1').click(function() {
+			if (targetstate == 'none'){
+				targetstate = 'green';
+				$(this).prevAll('.target').css({background: 'green'});
+			}else{
+				targetstate = 'none';
+				$(this).prevAll('.target').css({background: 'none'});
+			}
+		});
+
+		$('#button2').click(function() {
+			if (targetstate == 'none'){
+				targetstate = 'green';
+				$(this).prevAll('.target').green();
+			}else{
+				targetstate = 'none';
+				$(this).prevAll('.target').css({background: 'none'});
+			}
+		});
+
+		$('#test2 input[value=on]').click(function() {$(this).prevAll('.target').green2()});
+		$('#test2 input[value=darker]').click(function() {$(this).prevAll('.target').green2('darker')});
+		$('#test2 input[value=lighter]').click(function() {$(this).prevAll('.target').green2('lighter')});
+		$('#test2 input[value=off]').click(function() {$(this).prevAll('.target').green2('off')});
+
+		$('#test3 input[value=on]').click(function() {$(this).prevAll('.target').green3()});
+		$('#test3 input[value=darker]').click(function() {$(this).prevAll('.target').green3('darker')});
+		$('#test3 input[value=lighter]').click(function() {$(this).prevAll('.target').green3('lighter')});
+		$('#test3 input[value=off]').click(function() {$(this).prevAll('.target').green3('destroy')});
+
+		$('#test4 input[value=on]').click(function() {$(this).prevAll('.target').green4()});
+		$('#test4 input[value=darker]').click(function() {$(this).prevAll('.target').green4('darker')});
+		$('#test4 input[value=lighter]').click(function() {$(this).prevAll('.target').green4('lighter')});
+		$('#test4 input[value=off]').click(function() {$(this).prevAll('.target').green4('destroy')});
+
+		$('#test4-1 input[value=on]').click(function() {$(this).prevAll('.target').green4({
+			level:3,
+			greenlevels: ['#000','#00f','#088', '#0f0', '#880', '#f00', '#808', '#fff']
+		})});
+		$('#test4-1 input[value=darker]').click(function() {$(this).prevAll('.target').green4('darker')});
+		$('#test4-1 input[value=lighter]').click(function() {$(this).prevAll('.target').green4('lighter')});
+		$('#test4-1 input[value=off]').click(function() {$(this).prevAll('.target').green4('off')});
+
+		$('#test5 input[value=on]').click(function() {
+			$(this).prevAll('.target').green5({
+				change: function(evt, x){
+					$('.level', this).text(x); // callback function
+				}
+			}).unbind('green5done') // in case 'on' is clicked more than once
+			.bind('green5done', function() {
+				$('.level', this).text('undefined');
+				alert('bye!');
+			});
+		});
+		$('#test5 input[value=darker]').click(function() {$(this).prevAll('.target').green5('darker')});
+		$('#test5 input[value=lighter]').click(function() {$(this).prevAll('.target').green5('lighter')});
+		$('#test5 input[value=off]').click(function() {$(this).prevAll('.target').green5('off')});
+
+		$('#test6 input[value=on]').click(function() {
+			$(this).prevAll('.target').green6({
+				change: function(evt, x){
+					$('.level', this).text(x);
+				},
+				done: function(){
+					$('.level', this).text('undefined');
+				}
+			});
+		});
+		$('#test6 input[value=darker]').click(function() {$(this).prevAll('.target').green6('darker')});
+		$('#test6 input[value=lighter]').click(function() {$(this).prevAll('.target').green6('lighter')});
+		$('#test6 input[value=off]').click(function() {$(this).prevAll('.target').green6('off')});
+	});
+	</script>
+
   </body>
 </html>
