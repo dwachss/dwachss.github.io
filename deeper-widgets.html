@@ -154,9 +154,25 @@
 };
 </code></pre>
 
-<p>The function is really just line 72: <code class="language-javascript">constructor = $[ namespace ][ name ] = function( options, element ) {};</code>
+<p>The function is really just line 72: <code class="language-javascript">constructor = $[namespace][name] = function(options, element) { this._createWidget(options, element); };</code> with a prototype created later on line 129. <code class="language-javascript">_createWidget</code> is defined in <code class="language-javascript">$.Widget</code>, the base class for all widgets. It sets up event an event namespace, attaches the widget object to the target element (as <code class="language-javascript">$(element).data(this.widgetFullName, this);</code>. <code class="language-javascript">widgetFullName</code> is <code class="language-javascript">namespace+'-'+name</code>), and calls <code class="language-javascript">this._create</code> and <code class="language-javascript">this._init</code>.</p>
+<p>With this, you would use <code class="language-javascript">var widget = new $[namespace][name]({option: value}, element);</code> and call methods directly: <code class="language-javascript">widget.foo()</code>. Turning that into a jQuery plugin is the job of <code class="language-javascript">$.widget.bridge</code> which we will look at later.</p>
+
+<p>Lines 79 to 93 and 145 to 158 are a hack to simulate a prototype chain. Changing the base class would create new methods on all subclasses, but there may be other initialization and other data that needs to be modified. The code keeps a list of every widget that inherits from this one (line 157 pushes this constructor onto the list from the base class), and redefines all of those if this is redefined. It's not clear to me under what circumstances all this would be needed.</p>
+
+<p>The real cleverness is in building the prototype of the new constructor. The standard javascript way would be <code  class="language-javascript">constructor.prototype = new Base;</code> and then add the new methods, as <code class="language-javascript">$.extend (constructor.prototype, prototype)</code> (<code>prototype</code> was the argument passed into $.widget initially). But we want to be able to use <code class="language-javascript">this.super()</code> in our new methods. So we copy <code>prototype</code> (lines 100-128; basically line 128) but for each function we define a specific <code>_super</code> for this function (line 106), and replace the function with a new one that saves the old <code>this._super</code> as <code>__super</code> (line 113; two underlines instead of one. Sounds like they are begging for hard-to-catch bugs!), sets <code>this._super</code> to the base function just defined, and calls the actual method, then restores <code>this._super</code>. It defines <code>this._superApply</code> similarly.</p>
+
+<p>That's pretty clever, but it ends up creating a lot of overhead even if the method never calls <code>this._super</code>. I was involved in the original discussions of jQuery inheritance model, and my original idea used <a href=http://ejohn.org/blog/simple-javascript-inheritance/>John Resig's trick</a> for detecting a method that uses <code>this._super</code>. First, determine if the browser will let you examine the source code for functions: <code class="language-javascript">var fnTest = /xyz/.test(function(){xyz;})</code>. This creates a function with the text "xyz" in it and returns <code>true</code> if the RegExp can find it. If that works, then you can check every method in <code>prototype<code> with (at line 105)</p>
+<pre><code class="language-javascript">if (!fnTest || /\b_super\b/.test(value)){
+	// note that if fnTest is false then we have to redefine everything
+	proxiedPrototype[ prop ] = // fancy proxied function that defines _super;
+}else{
+	proxiedPrototype[ prop ] = value;
+}</code></pre>
+<p>But I guess they found that too hacky.</p>
+
       </section>
       <footer>
+		<p>Comments? Questions? Create an issue on <a href=https://github.com/dwachss/dwachss.github.io/issues>GitHub!</a></p>
 		<p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"></a><br>This work is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
         <p><small>Hosted on GitHub Pages &mdash; Theme Based on Minimalist by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
       </footer>
