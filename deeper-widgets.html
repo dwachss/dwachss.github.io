@@ -161,7 +161,7 @@
 
 <p>The real cleverness is in building the prototype of the new constructor. The standard javascript way would be <code  class="language-javascript">constructor.prototype = new Base;</code> and then add the new methods, as <code class="language-javascript">$.extend (constructor.prototype, prototype)</code> (<code>prototype</code> was the argument passed into $.widget initially). But we want to be able to use <code class="language-javascript">this.super()</code> in our new methods. So we copy <code>prototype</code> (lines 100-128; basically line 128) but for each function we define a specific <code>_super</code> for this function (line 106), and replace the function with a new one that saves the old <code>this._super</code> as <code>__super</code> (line 113; two underlines instead of one. Sounds like they are begging for hard-to-catch bugs!), sets <code>this._super</code> to the base function just defined, and calls the actual method, then restores <code>this._super</code>. It defines <code>this._superApply</code> similarly.</p>
 
-<p>That's pretty clever, but it ends up creating a lot of overhead even if the method never calls <code>this._super</code>. I was involved in the original discussions of jQuery inheritance model, and my original idea used <a href=http://ejohn.org/blog/simple-javascript-inheritance/>John Resig's trick</a> for detecting a method that uses <code>this._super</code>. First, determine if the browser will let you examine the source code for functions: <code class="language-javascript">var fnTest = /xyz/.test(function(){xyz;})</code>. This creates a function with the text "xyz" in it and returns <code>true</code> if the RegExp can find it. If that works, then you can check every method in <code>prototype<code> with (at line 105)</p>
+<p>That's pretty clever, but it ends up creating a lot of overhead even if the method never calls <code>this._super</code>. I was involved in the original discussions of jQuery inheritance model, and my original idea used <a href=http://ejohn.org/blog/simple-javascript-inheritance/>John Resig's trick</a> for detecting a method that uses <code>this._super</code>. First, determine if the browser will let you examine the source code for functions: <code class="language-javascript">var fnTest = /xyz/.test(function(){xyz;})</code>. This creates a function with the text "xyz" in it and returns <code>true</code> if the RegExp can find it. If that works, then you can check every method in <code>prototype</code> with (at line 105)</p>
 <pre><code class="language-javascript">if (!fnTest || /\b_super\b/.test(value)){
 	// note that if fnTest is false then we have to redefine everything
 	proxiedPrototype[ prop ] = // fancy proxied function that defines _super;
@@ -172,9 +172,9 @@
 
       </section>
       <footer>
-		<p>Comments? Questions? Create an issue on <a href=https://github.com/dwachss/dwachss.github.io/issues>GitHub!</a></p>
-		<p><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"></a><br>This work is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.</p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme Based on Minimalist by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+		<p>Comments? Questions? Create an <a href=https://github.com/dwachss/dwachss.github.io/issues>issue</a>!</p>
+		<p><small><a href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons License" src="https://i.creativecommons.org/l/by-sa/4.0/80x15.png"></a> This work is licensed under a <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 License</a>.</small></p>
+        <p><small>Hosted on GitHub Pages&mdash;Theme Based on Minimalist by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
       </footer>
     </div>
     <script src="javascripts/scale.fix.js"></script>

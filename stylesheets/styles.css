@@ -1,7 +1,7 @@
 @import url(http://fonts.googleapis.com/css?family=Average+Sans|Source+Code+Pro|Fjalla+One); /* modified 2015-02-04 DHW */
 
 body {
-  padding:50px;
+  padding:20px; /* modified 2015-02-01 DHW */
   font:14px/1.5 "Average Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   color:#333; /* modified 2015-02-01 DHW */
   font-weight:300;
@@ -14,7 +14,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 p, ul, ol, table, pre, dl {
-  margin:0 0 20px;
+  margin: 4px 0; /* modified 2015-02-01 DHW */
 }
 
 h1, h2, h3 {
