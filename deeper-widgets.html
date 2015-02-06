@@ -170,6 +170,76 @@
 }</code></pre>
 <p>But I guess they found that too hacky.</p>
 
+<p>The other clever part of <code class="language-javascript">$.widget</code> is lines 66-68. The widget object is attached (by <code class="language-javascript">$.widget.bridge</code>) to the element as <code class="language-javascript">$(element).data('namespace-name')</code>. So you can select elements that have your widget attached with <code class="language-javascript">$(':namespace-name')</code>. Note that it only selects that actual widget, not any widgets derived from it; if you define <code class="language-javascript">$.widget('custom.betterdialog', $.ui.dialog, {..})</code> then <code class="language-javascript">$(':ui-dialog')</code> does not select elements that used <code class="language-javascript">$().betterdialog()</code>.</p>
+
+<h2><code>$.widget.bridge</code></h2>
+<pre><code class="language-javascript" data-linenumber=191>$.widget.bridge = function( name, object ) {
+	var fullName = object.prototype.widgetFullName || name;
+	$.fn[ name ] = function( options ) {
+		var isMethodCall = typeof options === "string",
+			args = widget_slice.call( arguments, 1 ),
+			returnValue = this;
+
+		if ( isMethodCall ) {
+			this.each(function() {
+				var methodValue,
+					instance = $.data( this, fullName );
+				if ( options === "instance" ) {
+					returnValue = instance;
+					return false;
+				}
+				if ( !instance ) {
+					return $.error( "cannot call methods on " + name + " prior to initialization; " +
+						"attempted to call method '" + options + "'" );
+				}
+				if ( !$.isFunction( instance[options] ) || options.charAt( 0 ) === "_" ) {
+					return $.error( "no such method '" + options + "' for " + name + " widget instance" );
+				}
+				methodValue = instance[ options ].apply( instance, args );
+				if ( methodValue !== instance && methodValue !== undefined ) {
+					returnValue = methodValue && methodValue.jquery ?
+						returnValue.pushStack( methodValue.get() ) :
+						methodValue;
+					return false;
+				}
+			});
+		} else {
+
+			// Allow multiple hashes to be passed on init
+			if ( args.length ) {
+				options = $.widget.extend.apply( null, [ options ].concat(args) );
+			}
+
+			this.each(function() {
+				var instance = $.data( this, fullName );
+				if ( instance ) {
+					instance.option( options || {} );
+					if ( instance._init ) {
+						instance._init();
+					}
+				} else {
+					$.data( this, fullName, new object( options, this ) );
+				}
+			});
+		}
+
+		return returnValue;
+	};
+};</code></pre>
+<p><code>bridge</code> provides the "bridge" between the state-handling and inheritance-handling code in <code class="language-javascript">$.widget</code> and jQuery itself. It takes a name and constructor function and creates a jQuery plugin with that name (line 193, <code class="language-javascript">$.fn[name] = function(){}</code>). The plugin does two different things, depending on how it's called.</p>
+<p>If it's called with no arguments or an object (assumed to be the options), then it goes to line 221 and looks for an existing widget attached to the element (line 230). If there is one, the widget is just reset with lines 231-234, <code class="language-javascript">instance.option(options); instance._init()</code>. If there is no widget, it is created with line 236 (the <code class="language-javascript">new object( options, this )</code> part) and attached to the element (the <code class="language-javascript">$.data( this, fullName ...</code> part).</p>
+<p>If the plugin is called with a string, that is taken as the method name and is called. The only cleverness is allowing for <code class="language-javascript"><a href=http://api.jquery.com/end/ >$.fn.end()</a></code>. If the method returns a jQuery object (line 215, <code class="language-javascript">if (methodValue.jquery)methodValue.jquery</code>), then use <code class="language-javascript"><a href=http://api.jquery.com/pushStack/ >$.fn.pushStack()</a></code> to correctly set up the linked list.</p>
+
+<p><code class="language-javascript">$.widget.bridge</code> is separated out from <code class="language-javascript">$.widget</code> itself so you can use it as a quick plugin-creator without all the heaviness from <code class="language-javascript">$.widget</code>. Just pass in a constructor function that takes an options argument and an element, and you have a plugin.</p>
+<p>TODO: insert example</p>
+
+<p>
+
+<h2>Other issues</h2>
+<p><code class="language-javascript">$.widget.extend</code> is a custom version of <code class="language-javascript">$.extend</code> that always does a deep copy; it's not clear to me why they don't just use <code class="language-javascript">$.extend(true,...</code>.</p>
+
+<p>TODO: discuss $.Widget</p>
+
       </section>
       <footer>
 		<p>Comments? Questions? Create an <a href=https://github.com/dwachss/dwachss.github.io/issues>issue</a>!</p>
