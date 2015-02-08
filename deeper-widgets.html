@@ -231,7 +231,7 @@
 <p>If the plugin is called with a string, that is taken as the method name and is called. The only cleverness is allowing for <code class="language-javascript"><a href=http://api.jquery.com/end/ >$.fn.end()</a></code>. If the method returns a jQuery object (line 215, <code class="language-javascript">if (methodValue.jquery)methodValue.jquery</code>), then use <code class="language-javascript"><a href=http://api.jquery.com/pushStack/ >$.fn.pushStack()</a></code> to correctly set up the linked list.</p>
 
 <p><code class="language-javascript">$.widget.bridge</code> is separated out from <code class="language-javascript">$.widget</code> itself so you can use it as a quick plugin-creator without all the heaviness from <code class="language-javascript">$.widget</code>. Just pass in a constructor function that takes an options argument and an element, and you have a plugin.</p>
-<p>TODO: insert example</p>
+<p>I wrote a <a href=animation.html>quick example</a> (and learned something about how <a href=css-tricks.com/restart-css-animation/>CSS animations don't work</a> along the way). I have to admit, I really don't see a use case for this, where using <code class="language-javascript">$.widget.bridge</code> is easier than <code class="language-javascript">$.widget</code> straight.</p>
 
 <p>
 

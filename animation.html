@@ -1,0 +1,58 @@
+<html>
+<head>
+<title>Playing with animation</title>
+<style>
+@keyframes blink {
+  from { opacity: 1 }
+  to { opacity: 0.1 }
+}
+@-webkit-keyframes blink {
+  from { opacity: 1 }
+  to { opacity: 0.1 }
+}
+p {
+	width: 200px;
+	height: 200px;
+	background-color: #abcdef;
+}
+.blink {
+	animation: blink infinite ease alternate;
+	-webkit-animation: blink infinite ease alternate;
+}
+
+
+</style>
+</head>
+<body>
+<p>This is a test.</p>
+<div><input type=button value=faster /><input type=button value=slower /></div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
+<script>
+	$.widget.bridge('blink', function (options, element){
+		var duration;
+		function setduration(n){
+			duration = n;
+			$(element).removeClass('blink');
+			$(element).css({
+				'animation-duration': n+'s',
+				'-webkit-animation-duration': n+'s'
+			});
+			// there seems to be some kind of Chrome and IE bug where the animation won't change dynamically.
+			// Trick from http://css-tricks.com/restart-css-animation/
+			 element.classList.remove("blink");			  
+			 // -> triggering reflow /* The actual magic */
+			 // without this it wouldn't work. Try uncommenting the line and the transition won't be retriggered.
+			 element.offsetWidth = element.offsetWidth;			  
+			 // -> and re-adding the class
+			 element.classList.add("blink");
+		};
+		setduration(2);
+		this.faster = function () { setduration(duration/2) };
+		this.slower = function () { element.style['-webkit-animation'] = 'none'; };
+	});
+	$('p').blink();
+	$('input').click (function () {$('p').blink(this.value)});
+</script>
+</body>
+</html>
