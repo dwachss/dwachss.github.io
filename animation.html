@@ -49,7 +49,7 @@ p {
 		};
 		setduration(2);
 		this.faster = function () { setduration(duration/2) };
-		this.slower = function () { element.style['-webkit-animation'] = 'none'; };
+		this.slower = function () { setduration(duration*2) };
 	});
 	$('p').blink();
 	$('input').click (function () {$('p').blink(this.value)});
