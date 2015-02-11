@@ -119,7 +119,7 @@ span.line{
 	counter-increment: linenumber;
 }
 span.line:nth-child(odd){
-	background: #f0f0f0;
+	background: #eaeaf8;
 }
 span.line:before{
 	content: counter(linenumber);
