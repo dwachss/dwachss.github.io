@@ -151,6 +151,10 @@ $.widget('bililite.superboxwithmouseover1', $.bililite.supererbox, {
 (function(){
 	var oldwidget = $.widget;
 	$.widget = function(name, base, prototype){
+		if ( !prototype ) {
+			prototype = base;
+			base = $.Widget;
+		}
 		var proto = $.extend({}, prototype); // copy it so it can be reused
 		for (key in proto) if (proto.hasOwnProperty(key)) switch (key){
 			case '_create':
